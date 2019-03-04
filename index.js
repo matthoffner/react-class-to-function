@@ -11,10 +11,10 @@ const removeComponentImport = (root, j) => {
 };
 
 // Parse propTypes into constructor, move to bottom
-const buildPropTypeConstructor = (root, j, path) => {
+const buildPropTypeConstructor = (root, j, className) => {
   let propTypes = "({";
-  let staticPropTypes = `ReactExample.propTypes = {\n`;
-  let staticDefaultProps = `ReactExample.defaultProps = {\n`;
+  let staticPropTypes = `${className}.propTypes = {\n`;
+  let staticDefaultProps = `${className}.defaultProps = {\n`;
   root.find(j.ClassProperty).forEach(path => {
     if (path.value.key.name === "propTypes") {
       const props = path.value.value.properties;
@@ -70,17 +70,28 @@ const replaceThisProps = (root, j) => {
     .replaceWith(p => p.value.property);
 };
 
+const findClassName = root => {
+  let className;
+  root.get().node.program.body.forEach(node => {
+    if (node.type === "ExportDefaultDeclaration") {
+      className = node.declaration.id.name;
+    }
+  });
+  return className;
+};
+
 export default function(fileinfo, api) {
   const j = api.jscodeshift;
   const source = fileinfo.source;
   const root = j(source);
 
   removeComponentImport(root, j);
+  const className = findClassName(root);
   const {
     staticDefaultProps,
     staticPropTypes,
     propTypes
-  } = await buildPropTypeConstructor(root, j, fileinfo.path);
+  } = buildPropTypeConstructor(root, j, className);
   replaceThisProps(root, j);
   root.get().node.program.body.push(staticPropTypes);
   root.get().node.program.body.push(staticDefaultProps);
@@ -91,6 +102,8 @@ export default function(fileinfo, api) {
         node.declaration.body.body[0].value.body.body[0]
       );
       node.declaration.body.body.shift();
+      console.log(node.declaration.superClass);
+      // node.declaration.superClass = {};
     }
   });
   return root.toSource();
