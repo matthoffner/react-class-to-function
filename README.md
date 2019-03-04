@@ -50,12 +50,8 @@ ReactExample.defaultProps = {
 };
 ```
 
-## Steps for converting
+## How to use
 
-- Remove { Component } - Done
-- Constructor from propTypes - Done
-- Remove this.props. - Done
-- Move propTypes and defaultProps to bottom of file - Done
-- Remove render() { - Done
-- Remove } - Done
-- Replace "class" with "function"
+```sh
+jscodeshift -t index.js react-class.js
+```

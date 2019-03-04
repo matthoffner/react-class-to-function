@@ -15,8 +15,11 @@ const buildPropTypeConstructor = (root, j, className) => {
   let propTypes = "({";
   let staticPropTypes = `${className}.propTypes = {\n`;
   let staticDefaultProps = `${className}.defaultProps = {\n`;
+  let hasDefaultProps;
+  let hasPropTypes;
   root.find(j.ClassProperty).forEach(path => {
     if (path.value.key.name === "propTypes") {
+      hasPropTypes = true;
       const props = path.value.value.properties;
       for (let x = 0; x < props.length; x++) {
         propTypes = `${propTypes}${props[x].key.name}`;
@@ -33,6 +36,7 @@ const buildPropTypeConstructor = (root, j, className) => {
       propTypes = `${propTypes}})`;
     }
     if (path.value.key.name === "defaultProps") {
+      hasDefaultProps = true;
       const defaultProps = path.value.value.properties;
       for (let y = 0; y < defaultProps.length; y++) {
         staticDefaultProps = `${staticDefaultProps}  ${
@@ -47,6 +51,8 @@ const buildPropTypeConstructor = (root, j, className) => {
     }
   });
   return {
+    hasDefaultProps,
+    hasPropTypes,
     staticDefaultProps,
     staticPropTypes,
     propTypes
@@ -88,22 +94,25 @@ export default function(fileinfo, api) {
   removeComponentImport(root, j);
   const className = findClassName(root);
   const {
+    hasDefaultProps,
+    hasPropTypes,
     staticDefaultProps,
     staticPropTypes,
     propTypes
   } = buildPropTypeConstructor(root, j, className);
   replaceThisProps(root, j);
-  root.get().node.program.body.push(staticPropTypes);
-  root.get().node.program.body.push(staticDefaultProps);
+  if (hasPropTypes) {
+    root.get().node.program.body.push(staticPropTypes);
+  }
+  if (hasDefaultProps) {
+    root.get().node.program.body.push(staticDefaultProps);
+  }
   root.find(j.ClassProperty).remove();
   root.get().node.program.body.forEach(node => {
     if (node.type === "ExportDefaultDeclaration") {
-      node.declaration.body.body.push(
-        node.declaration.body.body[0].value.body.body[0]
-      );
-      node.declaration.body.body.shift();
-      console.log(node.declaration.superClass);
-      // node.declaration.superClass = {};
+      node.declaration = `function ${className}${propTypes}{
+        ${j(node.declaration.body.body[0].value.body.body[0]).toSource()}
+      }`;
     }
   });
   return root.toSource();
