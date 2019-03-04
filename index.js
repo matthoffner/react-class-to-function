@@ -12,7 +12,7 @@ const removeComponentImport = (root, j) => {
 
 // Parse propTypes into constructor, move to bottom
 const buildPropTypeConstructor = (root, j, className) => {
-  let propTypes = "({";
+  let propTypes = "({ ";
   let staticPropTypes = `${className}.propTypes = {\n`;
   let staticDefaultProps = `${className}.defaultProps = {\n`;
   let hasDefaultProps;
@@ -23,17 +23,17 @@ const buildPropTypeConstructor = (root, j, className) => {
       const props = path.value.value.properties;
       for (let x = 0; x < props.length; x++) {
         propTypes = `${propTypes}${props[x].key.name}`;
-        staticPropTypes = `${staticPropTypes}  ${props[x].key.name}: ${
-          props[x].value.name
-        }`;
+        staticPropTypes = `${staticPropTypes}  ${props[x].key.name}: ${j(
+          props[x].value
+        ).toSource()}`;
         if (props.length - x > 1) {
           // avoid trailing comma
-          propTypes = `${propTypes},`;
+          propTypes = `${propTypes}, `;
           staticPropTypes = `${staticPropTypes},\n`;
         }
       }
       staticPropTypes = `${staticPropTypes}\n};`;
-      propTypes = `${propTypes}})`;
+      propTypes = `${propTypes} })`;
     }
     if (path.value.key.name === "defaultProps") {
       hasDefaultProps = true;
@@ -41,9 +41,8 @@ const buildPropTypeConstructor = (root, j, className) => {
       for (let y = 0; y < defaultProps.length; y++) {
         staticDefaultProps = `${staticDefaultProps}  ${
           defaultProps[y].key.name
-        }: ${defaultProps[y].value.raw}`;
+        }: ${j(defaultProps[y].value).toSource()}`;
         if (defaultProps.length - y > 1) {
-          // avoid trailing comma
           staticDefaultProps = `${staticDefaultProps},\n`;
         }
       }
@@ -110,9 +109,10 @@ export default function(fileinfo, api) {
   root.find(j.ClassProperty).remove();
   root.get().node.program.body.forEach(node => {
     if (node.type === "ExportDefaultDeclaration") {
-      node.declaration = `function ${className}${propTypes}{
-        ${j(node.declaration.body.body[0].value.body.body[0]).toSource()}
-      }`;
+      node.declaration = `function ${className}${propTypes} {\n${j(
+        node.declaration.body.body[0].value.body.body[0]
+      ).toSource()}
+}`;
     }
   });
   return root.toSource();
