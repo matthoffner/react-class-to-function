@@ -106,12 +106,30 @@ export default function(fileinfo, api) {
   if (hasDefaultProps) {
     root.get().node.program.body.push(staticDefaultProps);
   }
-  root.find(j.ClassProperty).remove();
   root.get().node.program.body.forEach(node => {
     if (node.type === "ExportDefaultDeclaration") {
-      node.declaration = `function ${className}${propTypes} {\n${j(
-        node.declaration.body.body[0].value.body.body[0]
-      ).toSource()}
+      let declaration;
+      if (
+        node.declaration.body.body[2].value.type !==
+          "ArrowFunctionExpression" &&
+        hasPropTypes &&
+        hasDefaultProps
+      ) {
+        root.find(j.ClassProperty).remove();
+        declaration = j(
+          node.declaration.body.body[0].value.body.body[0]
+        ).toSource();
+      } else {
+        declaration = j(
+          node.declaration.body.body[node.declaration.body.body.length - 1]
+            .value.body.body
+        )
+          .toSource()
+          .join("\n");
+        root.find(j.ClassProperty).remove();
+      }
+
+      node.declaration = `function ${className}${propTypes} {\n${declaration}   
 }`;
     }
   });
