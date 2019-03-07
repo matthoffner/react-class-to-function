@@ -1,6 +1,6 @@
 {
   "name": "@porch/react-class-to-function",
-  "version": "0.0.2",
+  "version": "0.0.3-rc.0",
   "description": "Codemod script for creating react class to function",
   "main": "index.js",
   "repository": {
